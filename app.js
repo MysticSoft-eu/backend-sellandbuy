@@ -17,16 +17,11 @@ const Category = require('./models/Category');
 const ws = require('ws');
 const Message = require('./models/Message');
 
-
-
 app.use(cors({
-    origin: 'https://www.sellandbuytests.com/',
+    origin: 'https://www.sellandbuytests.com',
     credentials: true,
     
 }));
-
-app.get('/', (req, res) => res.json('Hello World!'));
-
 
 const bcryctSalt = bcryct.genSaltSync(10);
 dotenv.config();
@@ -75,7 +70,9 @@ app.post('/login', async (req, res) => {
         }, 
         process.env.JWT_SECRET, {},(err, token) => {
             if(err) throw err;
-            res.cookie('token',token,{ sameSite: 'none', secure: true}).json(userDoc);
+            res.cookie('token',token,{ httpOnly: true,
+              secure: true,
+              sameSite: 'none'}).json(userDoc);
 
         });
 
