@@ -128,7 +128,7 @@ const photosMiddleware = multer({ dest: 'uploads/' });
 
 mongoose.connect(process.env.MONGO_URL);  // Connect to MongoDB once when server starts
 
-app.post('/upload', upload.single('image'), function (req, res, next) {
+app.post('/upload', upload.array('photos'), function (req, res, next) {
   console.log(req.file);  // log the file object information
   res.json({ imageUrl: req.file.path });
 });
