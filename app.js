@@ -16,6 +16,9 @@ const bodyParser = require('body-parser');
 const Category = require('./models/Category');
 const ws = require('ws');
 const Message = require('./models/Message');
+const multer  = require('multer');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 app.use(cors({
     origin: 'https://www.sellandbuytests.com',
@@ -23,12 +26,29 @@ app.use(cors({
     
 }));
 
+
+
 const bcryctSalt = bcryct.genSaltSync(10);
 dotenv.config();
 mongoose.connect(process.env.MONGO_URL);
 
+cloudinary.config({
+  cloud_name: 'YOUR_CLOUDINARY_CLOUD_NAME',
+  api_key: 'YOUR_CLOUDINARY_API_KEY',
+  api_secret: 'YOUR_CLOUDINARY_API_SECRET'
+});
 
-app.use('/uploads', express.static('uploads'))
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'some-folder-name',
+    format: async (req, file) => 'png', // supports promises as well
+    public_id: (req, file) => file.originalname,
+  },
+});
+const upload = multer({ storage: storage });
+
+
 app.use(bodyParser.json());
 app.use(express.json());
 app.use(cookieParser());
@@ -108,15 +128,9 @@ const photosMiddleware = multer({ dest: 'uploads/' });
 
 mongoose.connect(process.env.MONGO_URL);  // Connect to MongoDB once when server starts
 
-app.post('/upload',photosMiddleware.array('photos', 100), (req, res) => {
-  const uploadedFiles = req.files.map(file => {
-    const ext = file.originalname.split('.').pop();
-    const newPath = `${file.path}.${ext}`;
-    fs.renameSync(file.path, newPath);
-    return newPath.replace('uploads\\','');
-  });
-
-  res.json(uploadedFiles);
+app.post('/upload', upload.single('image'), function (req, res, next) {
+  console.log(req.file);  // log the file object information
+  res.json({ imageUrl: req.file.path });
 });
 
 app.post('/additem', (req, res) => {
