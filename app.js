@@ -11,7 +11,7 @@ const Item = require('./models/item');
 const Chat = require('./models/Chat');
 const dotenv = require("dotenv");
 const User = require('./models/User');
-const multer = require('multer');
+
 const bodyParser = require('body-parser');
 const Category = require('./models/Category');
 const ws = require('ws');
