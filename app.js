@@ -18,7 +18,7 @@ const ws = require('ws');
 const Message = require('./models/Message');
 const multer  = require('multer');
 const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
+require("dotenv").config();
 
 app.use(cors({
     origin: 'https://www.sellandbuytests.com',
@@ -26,6 +26,9 @@ app.use(cors({
     
 }));
 
+app.use(bodyParser.json());
+app.use(express.json());
+app.use(cookieParser());
 
 
 const bcryctSalt = bcryct.genSaltSync(10);
@@ -33,25 +36,34 @@ dotenv.config();
 mongoose.connect(process.env.MONGO_URL);
 
 cloudinary.config({
-  cloud_name: 'YOUR_CLOUDINARY_CLOUD_NAME',
-  api_key: 'YOUR_CLOUDINARY_API_KEY',
-  api_secret: 'YOUR_CLOUDINARY_API_SECRET'
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+async function handleUpload(file) {
+  const res = await cloudinary.uploader.upload(file, {
+    resource_type: "auto",
+  });
+  return res;
+}
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'some-folder-name',
-    format: async (req, file) => 'png', // supports promises as well
-    public_id: (req, file) => file.originalname,
-  },
+const storage = new multer.memoryStorage();
+const upload = multer({
+  storage,
 });
-const upload = multer({ storage: storage });
-
-
-app.use(bodyParser.json());
-app.use(express.json());
-app.use(cookieParser());
+app.post("/upload", upload.single("my_file"), async (req, res) => {
+  try {
+    const b64 = Buffer.from(req.file.buffer).toString("base64");
+    let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+    const cldRes = await handleUpload(dataURI);
+    res.json(cldRes);
+  } catch (error) {
+    console.log(error);
+    res.send({
+      message: error.message,
+    });
+  }
+});
 
 
 app.get('/test', (req, res) => {
@@ -128,10 +140,6 @@ const photosMiddleware = multer({ dest: 'uploads/' });
 
 mongoose.connect(process.env.MONGO_URL);  // Connect to MongoDB once when server starts
 
-app.post('/upload', upload.array('photos'), function (req, res, next) {
-  console.log(req.file);  // log the file object information
-  res.json({ imageUrl: req.file.path });
-});
 
 app.post('/additem', (req, res) => {
   const {token} = req.cookies;
